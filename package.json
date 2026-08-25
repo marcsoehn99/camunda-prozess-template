@@ -1,0 +1,29 @@
+{
+  "name": "camunda-prozess-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prozess": "node src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:linter": "esbuild --bundle --format=esm --platform=node --log-level=error --outfile=vendor/camunda-linting.mjs node_modules/@camunda/linting/index.js",
+    "prepare": "npm run build:linter",
+    "deploy": "node src/deploy-cli.ts"
+  },
+  "dependencies": {
+    "@bpmn-io/feel-analyzer": "^0.3.0",
+    "@camunda/feel-builtins": "^1.4.1",
+    "@camunda/linting": "^3.54.1",
+    "bpmn-auto-layout": "^1.3.0",
+    "bpmn-moddle": "^10.1.0",
+    "modeler-moddle": "^0.2.0",
+    "yaml": "^2.9.0",
+    "zeebe-bpmn-moddle": "^1.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.3.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

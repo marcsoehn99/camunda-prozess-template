@@ -1,0 +1,26 @@
+{
+  "name": "Prozess",
+  "uri": "http://camundatest/schema/prozess/1.0",
+  "prefix": "prozess",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "associations": [],
+  "types": [
+    {
+      "name": "Definitions",
+      "isAbstract": true,
+      "extends": [
+        "bpmn:Definitions"
+      ],
+      "properties": [
+        {
+          "name": "signatur",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ],
+  "enumerations": []
+}

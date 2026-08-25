@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WEGWERFARBEIT (Ticket 01). Von Hand übersetzt, nicht erzeugt. Kein Prozess dieses Repos. -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_prototyp01" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Ticket 01 Wegwerf-Prototyp" exporterVersion="0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="prototyp-rechnungsfreigabe" name="Rechnungsfreigabe (Wegwerf-Prototyp)" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_Rechnung" name="Rechnung eingegangen">
+      <bpmn:outgoing>Flow_Start_Pruefen</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Pruefen" sourceRef="StartEvent_Rechnung" targetRef="Task_RechnungPruefen" />
+
+    <bpmn:serviceTask id="Task_RechnungPruefen" name="Rechnung gegen Bestellung prüfen">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="rechnung-pruefen" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=abweichung" target="abweichung" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_Pruefen</bpmn:incoming>
+      <bpmn:incoming>Flow_Korrigieren_Pruefen</bpmn:incoming>
+      <bpmn:outgoing>Flow_Pruefen_Abweichung</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Pruefen_Abweichung" sourceRef="Task_RechnungPruefen" targetRef="Gateway_Abweichung" />
+
+    <bpmn:exclusiveGateway id="Gateway_Abweichung" name="Gibt es eine Abweichung?" default="Flow_Abweichung_Nein">
+      <bpmn:incoming>Flow_Pruefen_Abweichung</bpmn:incoming>
+      <bpmn:outgoing>Flow_Abweichung_Ja</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Abweichung_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Abweichung_Ja" name="ja" sourceRef="Gateway_Abweichung" targetRef="Task_AbweichungKlaeren">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=abweichung</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Abweichung_Nein" name="nein" sourceRef="Gateway_Abweichung" targetRef="Gateway_JoinAbweichung" />
+
+    <bpmn:userTask id="Task_AbweichungKlaeren" name="Abweichung klären">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="Einkauf" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Abweichung_Ja</bpmn:incoming>
+      <bpmn:outgoing>Flow_Klaeren_Geklaert</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_Klaeren_Geklaert" sourceRef="Task_AbweichungKlaeren" targetRef="Gateway_Geklaert" />
+
+    <bpmn:exclusiveGateway id="Gateway_Geklaert" name="Konnte geklärt werden?" default="Flow_Geklaert_Ja">
+      <bpmn:incoming>Flow_Klaeren_Geklaert</bpmn:incoming>
+      <bpmn:outgoing>Flow_Geklaert_Nein</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Geklaert_Ja</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Geklaert_Nein" name="nein" sourceRef="Gateway_Geklaert" targetRef="EndEvent_Abgelehnt">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=not(geklaert)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Geklaert_Ja" name="ja" sourceRef="Gateway_Geklaert" targetRef="Gateway_JoinAbweichung" />
+
+    <bpmn:endEvent id="EndEvent_Abgelehnt" name="Rechnung abgelehnt">
+      <bpmn:incoming>Flow_Geklaert_Nein</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_JoinAbweichung">
+      <bpmn:incoming>Flow_Abweichung_Nein</bpmn:incoming>
+      <bpmn:incoming>Flow_Geklaert_Ja</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinAbweichung_Betrag</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_JoinAbweichung_Betrag" sourceRef="Gateway_JoinAbweichung" targetRef="Gateway_Betrag" />
+
+    <bpmn:exclusiveGateway id="Gateway_Betrag" name="Liegt der Betrag über 5000?" default="Flow_Betrag_Nein">
+      <bpmn:incoming>Flow_JoinAbweichung_Betrag</bpmn:incoming>
+      <bpmn:outgoing>Flow_Betrag_Ja</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Betrag_Nein</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Betrag_Ja" name="ja" sourceRef="Gateway_Betrag" targetRef="Task_FreigabeGF">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=rechnungsbetrag &gt; 5000</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Betrag_Nein" name="nein" sourceRef="Gateway_Betrag" targetRef="Task_FreigabeFB" />
+
+    <bpmn:userTask id="Task_FreigabeGF" name="Freigabe Geschäftsführung">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Betrag_Ja</bpmn:incoming>
+      <bpmn:outgoing>Flow_FreigabeGF_Join</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_FreigabeGF_Join" sourceRef="Task_FreigabeGF" targetRef="Gateway_JoinFreigabe" />
+
+    <bpmn:userTask id="Task_FreigabeFB" name="Freigabe Fachbereich">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Betrag_Nein</bpmn:incoming>
+      <bpmn:outgoing>Flow_FreigabeFB_Join</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_FreigabeFB_Join" sourceRef="Task_FreigabeFB" targetRef="Gateway_JoinFreigabe" />
+
+    <bpmn:exclusiveGateway id="Gateway_JoinFreigabe">
+      <bpmn:incoming>Flow_FreigabeGF_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_FreigabeFB_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinFreigabe_Freigegeben</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_JoinFreigabe_Freigegeben" sourceRef="Gateway_JoinFreigabe" targetRef="Gateway_Freigegeben" />
+
+    <bpmn:exclusiveGateway id="Gateway_Freigegeben" name="Wurde freigegeben?" default="Flow_Freigegeben_Ja">
+      <bpmn:incoming>Flow_JoinFreigabe_Freigegeben</bpmn:incoming>
+      <bpmn:outgoing>Flow_Freigegeben_Nein</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Freigegeben_Ja</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Freigegeben_Nein" name="nein" sourceRef="Gateway_Freigegeben" targetRef="Task_RechnungKorrigieren">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=not(freigegeben)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Freigegeben_Ja" name="ja" sourceRef="Gateway_Freigegeben" targetRef="Task_RechnungBuchen" />
+
+    <bpmn:userTask id="Task_RechnungKorrigieren" name="Rechnung korrigieren">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition candidateGroups="Buchhaltung" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Freigegeben_Nein</bpmn:incoming>
+      <bpmn:outgoing>Flow_Korrigieren_Pruefen</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_Korrigieren_Pruefen" sourceRef="Task_RechnungKorrigieren" targetRef="Task_RechnungPruefen" />
+
+    <bpmn:serviceTask id="Task_RechnungBuchen" name="Rechnung buchen">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="rechnung-buchen" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=buchungsnummer" target="buchungsnummer" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Freigegeben_Ja</bpmn:incoming>
+      <bpmn:outgoing>Flow_Buchen_Zahlung</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Buchen_Zahlung" sourceRef="Task_RechnungBuchen" targetRef="Task_ZahlungAnstossen" />
+
+    <bpmn:serviceTask id="Task_ZahlungAnstossen" name="Zahlung anstoßen">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="zahlung-anstossen" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Buchen_Zahlung</bpmn:incoming>
+      <bpmn:outgoing>Flow_Zahlung_Ende</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Zahlung_Ende" sourceRef="Task_ZahlungAnstossen" targetRef="EndEvent_Bezahlt" />
+
+    <bpmn:endEvent id="EndEvent_Bezahlt" name="Rechnung bezahlt">
+      <bpmn:incoming>Flow_Zahlung_Ende</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="prototyp-rechnungsfreigabe">
+      <bpmndi:BPMNShape id="S_StartEvent_Rechnung" bpmnElement="StartEvent_Rechnung">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="139" y="143" width="79" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_RechnungPruefen" bpmnElement="Task_RechnungPruefen">
+        <dc:Bounds x="250" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Abweichung" bpmnElement="Gateway_Abweichung" isMarkerVisible="true">
+        <dc:Bounds x="400" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="382" y="53" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_AbweichungKlaeren" bpmnElement="Task_AbweichungKlaeren">
+        <dc:Bounds x="460" y="198" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Geklaert" bpmnElement="Gateway_Geklaert" isMarkerVisible="true">
+        <dc:Bounds x="605" y="213" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="590" y="270" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_EndEvent_Abgelehnt" bpmnElement="EndEvent_Abgelehnt">
+        <dc:Bounds x="612" y="340" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="592" y="383" width="77" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_JoinAbweichung" bpmnElement="Gateway_JoinAbweichung" isMarkerVisible="true">
+        <dc:Bounds x="605" y="93" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Betrag" bpmnElement="Gateway_Betrag" isMarkerVisible="true">
+        <dc:Bounds x="710" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="693" y="53" width="85" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_FreigabeGF" bpmnElement="Task_FreigabeGF">
+        <dc:Bounds x="785" y="10" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_FreigabeFB" bpmnElement="Task_FreigabeFB">
+        <dc:Bounds x="785" y="198" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_JoinFreigabe" bpmnElement="Gateway_JoinFreigabe" isMarkerVisible="true">
+        <dc:Bounds x="925" y="93" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Gateway_Freigegeben" bpmnElement="Gateway_Freigegeben" isMarkerVisible="true">
+        <dc:Bounds x="1030" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1017" y="53" width="76" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_RechnungKorrigieren" bpmnElement="Task_RechnungKorrigieren">
+        <dc:Bounds x="1005" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_RechnungBuchen" bpmnElement="Task_RechnungBuchen">
+        <dc:Bounds x="1140" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Task_ZahlungAnstossen" bpmnElement="Task_ZahlungAnstossen">
+        <dc:Bounds x="1290" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_EndEvent_Bezahlt" bpmnElement="EndEvent_Bezahlt">
+        <dc:Bounds x="1442" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1424" y="143" width="73" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="E_Flow_Start_Pruefen" bpmnElement="Flow_Start_Pruefen">
+        <di:waypoint x="196" y="118" />
+        <di:waypoint x="250" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Pruefen_Abweichung" bpmnElement="Flow_Pruefen_Abweichung">
+        <di:waypoint x="350" y="118" />
+        <di:waypoint x="400" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Abweichung_Ja" bpmnElement="Flow_Abweichung_Ja">
+        <di:waypoint x="425" y="143" />
+        <di:waypoint x="425" y="238" />
+        <di:waypoint x="460" y="238" />
+        <bpmndi:BPMNLabel><dc:Bounds x="431" y="180" width="14" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Abweichung_Nein" bpmnElement="Flow_Abweichung_Nein">
+        <di:waypoint x="450" y="118" />
+        <di:waypoint x="605" y="118" />
+        <bpmndi:BPMNLabel><dc:Bounds x="513" y="100" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Klaeren_Geklaert" bpmnElement="Flow_Klaeren_Geklaert">
+        <di:waypoint x="560" y="238" />
+        <di:waypoint x="605" y="238" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Geklaert_Nein" bpmnElement="Flow_Geklaert_Nein">
+        <di:waypoint x="630" y="263" />
+        <di:waypoint x="630" y="340" />
+        <bpmndi:BPMNLabel><dc:Bounds x="636" y="294" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Geklaert_Ja" bpmnElement="Flow_Geklaert_Ja">
+        <di:waypoint x="630" y="213" />
+        <di:waypoint x="630" y="143" />
+        <bpmndi:BPMNLabel><dc:Bounds x="636" y="171" width="14" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_JoinAbweichung_Betrag" bpmnElement="Flow_JoinAbweichung_Betrag">
+        <di:waypoint x="655" y="118" />
+        <di:waypoint x="710" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Betrag_Ja" bpmnElement="Flow_Betrag_Ja">
+        <di:waypoint x="735" y="93" />
+        <di:waypoint x="735" y="50" />
+        <di:waypoint x="785" y="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="741" y="62" width="14" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Betrag_Nein" bpmnElement="Flow_Betrag_Nein">
+        <di:waypoint x="735" y="143" />
+        <di:waypoint x="735" y="238" />
+        <di:waypoint x="785" y="238" />
+        <bpmndi:BPMNLabel><dc:Bounds x="741" y="180" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_FreigabeGF_Join" bpmnElement="Flow_FreigabeGF_Join">
+        <di:waypoint x="885" y="50" />
+        <di:waypoint x="950" y="50" />
+        <di:waypoint x="950" y="93" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_FreigabeFB_Join" bpmnElement="Flow_FreigabeFB_Join">
+        <di:waypoint x="885" y="238" />
+        <di:waypoint x="950" y="238" />
+        <di:waypoint x="950" y="143" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_JoinFreigabe_Freigegeben" bpmnElement="Flow_JoinFreigabe_Freigegeben">
+        <di:waypoint x="975" y="118" />
+        <di:waypoint x="1030" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Freigegeben_Nein" bpmnElement="Flow_Freigegeben_Nein">
+        <di:waypoint x="1055" y="143" />
+        <di:waypoint x="1055" y="410" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1061" y="270" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Freigegeben_Ja" bpmnElement="Flow_Freigegeben_Ja">
+        <di:waypoint x="1080" y="118" />
+        <di:waypoint x="1140" y="118" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1103" y="100" width="14" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Korrigieren_Pruefen" bpmnElement="Flow_Korrigieren_Pruefen">
+        <di:waypoint x="1005" y="450" />
+        <di:waypoint x="300" y="450" />
+        <di:waypoint x="300" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Buchen_Zahlung" bpmnElement="Flow_Buchen_Zahlung">
+        <di:waypoint x="1240" y="118" />
+        <di:waypoint x="1290" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_Flow_Zahlung_Ende" bpmnElement="Flow_Zahlung_Ende">
+        <di:waypoint x="1390" y="118" />
+        <di:waypoint x="1442" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

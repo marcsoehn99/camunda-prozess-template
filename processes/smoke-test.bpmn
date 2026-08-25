@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:prozess="http://camundatest/schema/prozess/1.0" id="Definitions_SmokeTest" targetNamespace="http://bpmn.io/schema/bpmn" exporter="camundatest-renderer" exporterVersion="1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0" prozess:signatur="6d9394cd0b23e462">
+  <bpmn:process id="smoke-test" name="Smoke Test" isExecutable="true">
+    <bpmn:startEvent id="Start_Start" name="Start">
+      <bpmn:outgoing>Fluss_Start_Start__Task_FreigabeErteilen</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_FreigabeErteilen" name="Freigabe erteilen">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Fluss_Start_Start__Task_FreigabeErteilen</bpmn:incoming>
+      <bpmn:outgoing>Fluss_Task_FreigabeErteilen__Ende_Fertig</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="Ende_Fertig" name="Fertig">
+      <bpmn:incoming>Fluss_Task_FreigabeErteilen__Ende_Fertig</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Fluss_Start_Start__Task_FreigabeErteilen" sourceRef="Start_Start" targetRef="Task_FreigabeErteilen" />
+    <bpmn:sequenceFlow id="Fluss_Task_FreigabeErteilen__Ende_Fertig" sourceRef="Task_FreigabeErteilen" targetRef="Ende_Fertig" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_smoke-test">
+    <bpmndi:BPMNPlane id="BPMNPlane_smoke-test" bpmnElement="smoke-test">
+      <bpmndi:BPMNShape id="Start_Start_di" bpmnElement="Start_Start">
+        <dc:Bounds x="57" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FreigabeErteilen_di" bpmnElement="Task_FreigabeErteilen">
+        <dc:Bounds x="175" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Ende_Fertig_di" bpmnElement="Ende_Fertig">
+        <dc:Bounds x="357" y="52" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Fluss_Start_Start__Task_FreigabeErteilen_di" bpmnElement="Fluss_Start_Start__Task_FreigabeErteilen">
+        <di:waypoint x="93" y="70" />
+        <di:waypoint x="175" y="70" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fluss_Task_FreigabeErteilen__Ende_Fertig_di" bpmnElement="Fluss_Task_FreigabeErteilen__Ende_Fertig">
+        <di:waypoint x="275" y="70" />
+        <di:waypoint x="357" y="70" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

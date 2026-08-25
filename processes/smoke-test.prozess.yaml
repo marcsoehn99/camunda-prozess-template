@@ -1,0 +1,7 @@
+prozess: smoke-test
+name: Smoke Test
+start:
+  name: Start
+ablauf:
+  - mensch: Freigabe erteilen
+  - ende: Fertig
